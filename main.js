@@ -30,6 +30,9 @@ to make it easier to read/follow */
 gi.addDrawing(
   function ({ ctx, width, height, elapsed, stepTime }) {
     // Your drawing code here...    
+    ctx.arc(width / 2, height / 2, 50, 0, 2 * Math.PI);
+    ctx.fillStyle = "blue";
+    ctx.fill();
   }
 )
 
@@ -38,10 +41,11 @@ gi.addDrawing(
 /* Example: Mouse click handler (you can change to handle 
 any type of event -- keydown, mousemove, etc) */
 
-gi.addEventListener(
+gi.addHandler(
   "click",
   function ({ event, x, y }) {
     // Your click handling code here...
+
   }
 )
 

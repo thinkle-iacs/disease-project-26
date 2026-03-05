@@ -1,142 +1,179 @@
-# Simple Canvas Game
+# Disease Spread Simulation
 
-## About this Project
+## Overview
 
-In this project, your goal is to create a simple game. That means you'll need:
+We started this unit with a simple physical experiment: the handshake game. You shook hands with classmates and eventually found out who "infected" who. That gave us an intuition for how disease spreads — but it had obvious limits. It was slow, we couldn't rerun it, we couldn't change the rules, and we couldn't scale it up.
 
-(1) User interaction
-(2) A "goal" (something the user is trying to do)
-(3) Feedback (something that tells the user how they're doing)
+A computer simulation lets us do all of those things. In this project you will build an **agent-based model** of disease spread: a canvas full of individual agents (people), each with their own state, moving around and interacting according to rules you define. You will then use your model to investigate how changing one or more variables affects the outcome of an outbreak.
 
-Your goal should be to come up with a _new_ game: please don't simply reimplement Pong or a well known existing game. I recommend taking inspiration from drawings or animations you've done in our intro to canvas drawing as you build your games. You can also come up with your own twist on an existing game.
+This is real epidemiological modeling — it's the same fundamental approach used to study COVID-19, influenza, and other diseases.
 
-Sample game ideas might include:
+---
 
-(1) Creative ideas using trig functions and circular motion, such as... - e.g. define spiral motion and try to "hit" a target by "rolling" an object in a spiral path
-(2) Creative ideas using simple bouncing motions such as...
+## Learning Goals
 
-- Trying to bounce a ball into a moving target
-- Trying to keep a ball "in the air" by bouncing it off a moving platform
-  (3) Creative ideas using user interaction such as...
-- Trying to "catch" falling objects by moving a basket left/right
-- Trying to "dodge" falling objects by moving a character left/right
-- Trying to "collect" falling objects by moving a character left/right
+By the end of this project you should be able to:
 
-## Planning and Requirements
+- Represent a collection of things in code using a **list** and access them with a **loop**
+- Write a **procedure (function)** that takes parameters and uses sequencing, selection, and iteration
+- Use **`Math.random()`** to model probabilistic events
+- Explain the difference between what a simulation models and what it leaves out
+- Describe how changing a variable in your model affects the results, and why
 
-You should have done pen-and-paper planning _before_ you start this project. The key concepts you need to think through ahead of time are:
+---
 
-### 1. Variables
+## The Model
 
-What variables will you need to track the game state? For example, you might need variables for:
+Your simulation will represent a population of agents. Each agent has at least these properties:
 
-- Player position
-- Score
-- Number of lives
-- Positions of falling objects
-- Velocity of moving objects
+- A position on the canvas (x, y)
+- A **state**: one of `"susceptible"`, `"infected"`, or `"recovered"` (you may add more — see below)
+- Any additional properties needed for the complicating factor you choose
 
-You should try to design your game to be simple enough that the "state" of the game can be tracked with a small number (<10) of variables.
+Each frame of the simulation, your model should:
 
-### 2. Drawing Functions
+1. **Move** each agent
+2. **Check for interactions** between agents (who is close enough to who?)
+3. **Update state** based on the rules of your disease
 
-You can add as many drawing functions as you need to your game. It's usually simplest to think of each object as a drawing. Think about what variables you need to draw each object. For example, to draw a player character, you might need:
+---
 
-- x position
-- y position
-- size
+## Requirements
 
-### 3. User Interaction (event handlers)
+### 1. Working simulation
 
-What user interactions will you need to handle? For example, you might need:
+Your simulation must run without errors and visually show the spread of disease through a population over time. Agents should be distinguishable by state (e.g. color).
 
-- Key presses (e.g. left/right arrows to move a character)
-- Mouse clicks (e.g. to start the game or interact with objects)
-- Mouse movement (e.g. to move a character with the mouse)
+### 2. At least one complicating factor
 
-You can add as many event handlers as you need. The typical pattern is that you will _update a variable_ in the event handler, and then use that variable in your drawing functions to change what is drawn.
+A basic model has agents that are either susceptible or infected. Your model must add **at least one** complicating factor from the list in the [reference section](#reference-complicating-factors) below. Your choice should be deliberate — pick something that connects to a real disease or intervention you find interesting.
 
-### 4. Utility Functions / Extra Logic
+### 3. At least one adjustable parameter
 
-Do you need any extra functions to help with game logic? For example, you might want a function to:
+Your simulation must expose **at least one parameter** the user can adjust (e.g. transmission probability, population size, vaccination rate). This should be wired to a slider or number input in the UI. Changing the parameter should visibly affect how the outbreak unfolds.
 
-- Check for collisions between objects
-- Update the score
-- Reset the game state
+### 4. A function of your own design — CREATE task requirement
 
-### About Functions
+You must write **at least one function** that satisfies **both** of the following:
 
-A good rule of thumb is a function should "fit" on a screen. If you find yourself scrolling a lot to read a function, it's probably too big and should be broken up into smaller functions that each do one specific thing. For example, you might have a single function in charge of drawing a bouncing ball that grows too long. You could break that function up into smaller parts like:
+#### Part A — Define the function
 
-1. A function to update the ball's position based on velocity.
-2. A function to check for collisions with walls and reverse velocity.
-3. A function to draw the ball at its current position.
+Your function must:
 
-This makes your code easier to read, easier to debug, and easier to reuse.
+- **Accept at least one parameter** that actually affects what the function does or returns — not a parameter that is accepted but ignored
+- Contain **sequencing** — steps that happen in a deliberate order
+- Contain **selection** — at least one `if` / `else if` / `else` that branches based on a condition
+- Contain **iteration** — a loop inside the function body
 
-## Assessment Criteria
+All three constructs must be **visible inside this one function**. Don't split the logic into so many small helpers that the sequencing, selection, and iteration disappear — this function needs to tell a complete story on its own.
 
-Your project will be assessed based on the following criteria:
+#### Part B — Call the function explicitly in your code
 
-1. Do you use functions effectively to organize your code?
+You must call your function somewhere in your simulation, passing arguments. The call must appear as a **direct function call with arguments in your code** — not wired up solely as a click handler, event listener, or library callback. The point is that *you* are explicitly invoking it.
 
-- Proficient (3): Functions are used to break code into logical sections, each with a clear purpose.
-- Mastery (4): Function names are descriptive and always use a verb. Sub-functions are used to break complex
-  tasks into simpler steps. Student uses functions with parameters and/or return values.
-
-2. Do you use variables effectively to track game state?
-   - Proficient (3): Variables are used to track key game state (e.g. player position, score).
-   - Mastery (4): Variables have descriptive names that clearly indicate their purpose. Constants are used to avoid
-     "magic numbers" in code (e.g. using `const GRAVITY = 0.5` instead of just `0.5`). Variable names help make
-     the code "self documenting" (i.e. it's easy to see what's happening just by reading the code).
-3. Do you implement user interaction effectively?
-   - Proficient (3): User interaction is implemented using appropriate event handlers (e.g. keydown, click).
-   - Mastery (4): Student has thought through details of interaction such as edge cases (e.g. what happens if multiple keys are
-     pressed at once). Student also includes a clear way to start/restart the game (e.g. a start screen or restart button after
-     the game ends).
-4. Is your game fun and engaging to play?
-   - Proficient (3): The game has a clear goal and provides feedback to the player (e.g. score, lives).
-   - Mastery (4): The game includes additional features that enhance engagement (e.g. levels, increasing difficulty, easter eggs).
-5. Is your code well organized and easy to read?
-   - Proficient (3): Code is organized into functions and uses consistent indentation and spacing.
-   - Mastery (4): Code includes extensive comments that show understanding of code and suggest student followed a "comment first" approach to writing (i.e. you first wrote comments laying out your plan, then wrote the code).
-
-## A Note on AI
-
-Note: I have provided Copilot with instructions for helping you on this project. Because Copilot here knows all about the project and library we are using, I recommend using Copilot _within your editor_ and _NOT_ using outside tools like ChatGPT to help you with this project. Using ChatGPT or similar tools may lead to confusion because they don't have the context of our specific library and project setup.
-
-Whenever you use AI, you need to cite your sources. If you use Copilot to help you write code, please add a comment in your code like this:
-
-```javascript
-// Code generated with the help of GitHub Copilot
-// in response to prompt: "...summary of prompt..."
-// Begin generated code
-
-// End generated code
+```js
+// Example — your function name and arguments will be different
+myFunction(someArgument, anotherArgument);
 ```
 
-When you use Copilot auto-complete, it is less obvious that you are using AI assistance, so please make sure to
-add a general note at the top of your `main.js` file where you acknowledge how you used Copilot in the project.
+> **Why this matters:** The AP CSP Performance Task (CREATE) requires you to (1) define a function with a parameter, and (2) call that function in your program. Both must be present and identifiable. This project is practice for exactly that.
 
-I _recommend_ that you follow a "comment first" approach to writing your code. If before each line of code you
-write a comment describing what you want to do, then you can use Copilot to help you fill in the code for each comment. This way, you are in control of the logic and structure of the code, and Copilot can help you with fussy
-details like how you draw a circle on the canvas or other API details.
+### 5. Written reflection
 
-## Running project
+Submit a short written reflection (can be a comment block at the top of your `main.js`, or a separate document) that answers:
 
-To run project, use
+1. What disease or scenario did you choose to model, and why?
+2. What does your complicating factor add to the model? How does it change the outcome?
+3. What did you *leave out* of your model, and why? What effect might those omissions have on your results?
+4. What happens when you adjust your parameter(s)? Does the result match what you'd expect from real life?
 
-```sh
-npm run dev
-```
+---
 
-### Your Code
+## Deliverables
 
-Your code should live in `main.js`
+- Your completed `main.js` (and any other files you modified)
+- A comment block at the top of `main.js` describing how you used AI assistance in this project
+- Your written reflection
 
-### Demos
+---
 
-See demo.js for some sample code.
+## Rubric
 
-Simple Canvas Library home page here: https://thinkle.github.io/simple-canvas-library/
-Source code of simple canvas library here: https://github.com/thinkle/simple-canvas-library/
+Each criterion is scored 1–4. The table below describes **3 (Proficient)** and **4 (Mastery)**. Scores of 1 or 2 will be explained in written feedback. A 4 is not a "better 3" — it describes something *additional* you did beyond the baseline.
+
+| Criterion | 3 — Proficient | 4 — Mastery |
+|---|---|---|
+| **Working code** | The simulation runs without errors. Agents appear on the canvas, move, and change state. There are no crashes or freezes during normal use. | The simulation handles edge cases gracefully — e.g. the simulation doesn't break when everyone has recovered or when the population is set to an extreme value. |
+| **Simulation correctness & complexity** | Disease spreads visibly through the population in a way that makes sense. At least one complicating factor is implemented and has a visible effect on the outbreak. | The complicating factor is grounded in real data — e.g. incubation timing, transmission rates, or intervention effectiveness are drawn from the reference tables or cited sources rather than arbitrary values. |
+| **Use of lists** | At least one list or other collection is used to manage data in the simulation (e.g. the population of agents). At least one loop iterates over that collection to update or process its elements. | Multiple traversals of the collection serve distinct purposes. The list is being used as an abstraction — the simulation would not work correctly if the list were replaced with a fixed set of individual variables. |
+| **Procedural abstraction** | A function is defined with at least one parameter and is explicitly called in the simulation with arguments passed — not solely via a callback or event handler. | The parameter(s) are used inside the function body in a way that visibly affects its behavior — not just accepted and ignored. |
+| **Sequencing, selection, and iteration** | All three are present and visible inside the same function: steps occur in a deliberate order, at least one `if`/`else` branches on a condition, and at least one loop runs inside the function body. | The order of steps, the branching conditions, and the loop are all doing real work — reordering the steps or removing the branch would produce a meaningfully different (wrong) result. |
+| **Reflection** | All four reflection questions are answered. At least one limitation of the model is identified. | The reflection connects simulation behavior to real-world outcomes — e.g. describes a specific parameter change and what it revealed, or explains why a particular simplification matters for the accuracy of the model. |
+
+---
+
+## Reference: Complicating Factors
+
+Choose at least one of the following. You are not limited to this list.
+
+### Incubation Period
+
+There is a delay between when an agent is infected and when they become contagious or symptomatic. During this window the agent is infected but not yet spreading the disease.
+
+| Disease | Incubation Period |
+|---|---|
+| Influenza | 1–2 days |
+| Common cold | 1–3 days |
+| Norovirus | 1–2 days |
+| COVID-19 | ~6 days |
+| Chickenpox | 10–21 days |
+| Ebola | 2–21 days |
+| Mononucleosis | 30–50 days |
+| Rabies | 30–100 days |
+
+### Contagious Period
+
+Agents are only contagious for a limited time. After the contagious period ends they may recover (or die).
+
+| Disease | Contagious Period |
+|---|---|
+| Chickenpox | ~6–7 days (starting 2 days before symptoms) |
+| Norovirus | 1 day before symptoms to 7 days after |
+| COVID-19 | Most infectious 5–7 days after infection |
+| Mononucleosis | ~7 days of fever |
+
+### Carriers / Subclinical Infections
+
+Not all infected agents show symptoms — but they can still spread the disease. This makes containment much harder.
+
+| Disease | % Symptomatic | % Carrier (no symptoms) |
+|---|---|---|
+| Mononucleosis (children) | 5–10% | 90–95% |
+| Rubella / Influenza | ~60% | ~40% |
+| COVID-19 | Unknown, estimated 2–45% asymptomatic | Documented asymptomatic transmission |
+
+### Interventions
+
+Model the effect of a public health response:
+
+- **Quarantine** — symptomatic agents stop moving or are removed from the population
+- **Vaccination** — some agents start immune; you can model partial effectiveness
+- **Treatment** — reduces infectivity or shortens contagious period
+
+### Vectors
+
+Some diseases spread through an animal carrier. You could model a second population of agents (mosquitoes, fleas, rats) that interact with the human population differently.
+
+- **Bubonic Plague** — spreads through flea bites; pneumonic form spreads person-to-person
+- **Malaria / Zika / Yellow Fever** — mosquito population varies with season
+
+### Movement and Crowding
+
+Model how density and movement patterns affect spread. What happens when you cluster agents in groups (like classrooms or households) rather than distributing them randomly? What happens when some agents travel between clusters?
+
+---
+
+*See [AGENTS.md](./AGENTS.md) for coding guidelines and the SimpleCanvasLibrary API reference.*
+
+---
+Citation: this README.md was generated based on Google Doc past versions of this assignment by Claude Sonnet 4.6, then edited in conversation with Claude by your very human teacher ;)

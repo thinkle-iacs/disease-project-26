@@ -7,7 +7,7 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "simple-canvas-library": "^1.1.0",
+    "simple-canvas-library": "^1.1.1",
     "vite": "^4.1.1"
   }
 }

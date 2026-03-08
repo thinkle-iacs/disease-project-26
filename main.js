@@ -2,189 +2,256 @@
 /* Game: [Your Game Name Here] */
 /* Authors: [Your Name(s) Here] */
 /* Description: [Short description of your game here] */
-/* Citations: [List any resources, libraries, tutorials, etc you used here] 
-/* Note: If you use significant AI help you should cite that here as well */
-/* including summaries of prompts and/or interactions you had with the AI */
-/* In addition, of course, any AI-generated code should be clearly maked */
-/* in comments throughout the code, though of course when using e.g. CoPilot */
-/* auto-complete it maye be impractical to mark every line, which is why you */
-/* should also include a summary here */
-
+/* Citations: [List any resources, libraries, tutorials, etc you used here] */
+/* Note: If you use significant AI help you should cite that here as well, */
+/* including summaries of prompts and/or interactions you had with the AI. */
+/* AI-generated sections in the code should also be marked like this:      */
+/*   // AI-generated: [brief description]                                  */
+/*   // end AI-generated                                                   */
 
 import "./style.css";
-
 import { GameInterface } from 'simple-canvas-library';
 
 let gi = new GameInterface();
 
-/* Variables: Top-Level variables defined here are used to hold game state */
 
-let population = [];
+/* ============================================================
+ * STATE
+ * Add your simulation variables here.
+ * ============================================================ */
+
 let infectionRate = 0.5;
-let roundCount = 0;
-let infectedPerRound = [1];
-let numCols = 10;
+// let population = [];
+// let roundCount = 0;
+// let infectedPerRound = [1];
+// ... add more as you need them
 
-function generatePopulation (p) {
-  population = [];
-  roundCount = 0;
-  infectedPerRound = [1];
-  numCols = Math.ceil(Math.sqrt(p));
-  for (let i = 0; i < p; i++) {
-    let col = i % numCols;
-    let row = Math.floor(i / numCols);
-    population.push({
-      x: (col + 1) * 10,  // e.g. 10, 20, 30... (% of canvas width)
-      y: (row + 1) * 10,  // e.g. 10, 20, 30... (% of canvas height)
-      infected: false
-    });
-  }
+
+/* ============================================================
+ * COORDINATE HELPER
+ *
+ * All positions in your simulation use "percent coordinates":
+ * x and y are numbers from 0 to 100, where (0,0) is the
+ * top-left and (100,100) is the bottom-right of any region.
+ *
+ * This means you can write all your logic in 0-100 terms and
+ * let the canvas be whatever size it wants -- the drawing will
+ * scale automatically.
+ *
+ * percentToPixels() converts a percent coordinate (x, y) into
+ * actual pixel coordinates for a given rectangular region
+ * (described by a bounds object).
+ *
+ * A bounds object looks like:
+ *   { top: 10, bottom: 400, left: 10, right: 800 }
+ *
+ * Examples (with bounds = { top:0, bottom:400, left:0, right:800 }):
+ *   percentToPixels(0,   0,   bounds) --> { x: 0,   y: 0   }  top-left
+ *   percentToPixels(100, 100, bounds) --> { x: 800, y: 400 }  bottom-right
+ *   percentToPixels(50,  50,  bounds) --> { x: 400, y: 200 }  center
+ *
+ * Usage:
+ *   let { x, y } = percentToPixels(person.x, person.y, simBounds);
+ *
+ * @param {number} x        - horizontal position, 0-100
+ * @param {number} y        - vertical position, 0-100
+ * @param {{top: number, bottom: number, left: number, right: number}} bounds
+ * @returns {{x: number, y: number}}
+ */
+function percentToPixels(x, y, bounds) {
+  return {
+    x: bounds.left + (x / 100) * (bounds.right - bounds.left),
+    y: bounds.top + (y / 100) * (bounds.bottom - bounds.top),
+  };
 }
 
-generatePopulation(400);
-// end AI-generated
 
-// infect a random one...
+/* ============================================================
+ * DRAWING: SIMULATION
+ *
+ * Draw your agents (people) inside the simulation area.
+ * The bounds object tells you exactly where that area is
+ * on the canvas -- use it with percentToPixels().
+ *
+ * Example -- drawing a circle at a person's position:
+ *
+ *   let { x, y } = percentToPixels(person.x, person.y, bounds);
+ *   ctx.fillStyle = person.infected ? 'red' : 'green';
+ *   ctx.beginPath();
+ *   ctx.arc(x, y, radius, 0, 2 * Math.PI);
+ *   ctx.fill();
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{top: number, bottom: number, left: number, right: number}} bounds
+ * @param {number} elapsed - total ms since simulation started
+ */
+function drawSimulation(ctx, bounds, elapsed) {
 
-let patientZero = population[Math.floor(Math.random() * population.length)];
-patientZero.infected = true;
+  // YOUR CODE HERE
 
-gi.addDrawing(function ({ ctx }) {
-  // Draw text...
-  ctx.fillStyle = 'yellow';
-  ctx.fillText(
-    `
-Round: ${roundCount}
-Population: ${population.length}
-Infection Rate: ${infectionRate}
-    `, 20, 20
-  )
-});
+}
 
-gi.addDrawing(function ({ ctx, width, height }) {
-  // AI-generated: convert % position to canvas pixels
-  let radius = (Math.min(width, height / 2) / numCols) * 0.4;
-  // Draw population...
-  for (let person of population) {
-    if (person.infected) {
-      ctx.fillStyle = 'red';
-    } else {
-      ctx.fillStyle = 'green';
-    }
-    let px = (person.x / population.length) * (width * 0.9);   // e.g. x=10 -> 10% of width (adjusted to 90% to leave padding)
-    let py = 20 + (person.y / population.length) * (height / 2 * 0.9);  // e.g. y=10 -> 10% of height (adjusted to 90% to leave padding)
-    ctx.beginPath();
-    ctx.arc(px, py, radius, 0, 2 * Math.PI);
-    ctx.fill();
-  }
-  // end AI-generated
-});
 
-gi.addDrawing(function ({ ctx, width, height }) {
-  let topOfGraph = height / 2;
-  let bottomOfGraph = height * 0.9;
-  let leftOfGraph = width * 0.1;
-  let rightOfGraph = width * 0.9;
-  let graphWidth = rightOfGraph - leftOfGraph;
-  let graphHeight = bottomOfGraph - topOfGraph;
+/* ============================================================
+ * DRAWING: GRAPH
+ *
+ * Draw a bar chart in the graph area showing how your data
+ * has changed over time.
+ *
+ * The y-axis is a little tricky: a bar that reaches "100%
+ * infected" should go all the way to the TOP of the graph
+ * area, but top < bottom in canvas coordinates (y=0 is the
+ * top of the screen). So a taller bar means a SMALLER y value.
+ * percentToPixels handles this correctly as long as you think
+ * of y=0 as "no infections" and y=100 as "all infected":
+ *
+ *   let barBottom = percentToPixels(barX, 0,   bounds);  // baseline
+ *   let barTop    = percentToPixels(barX, pct, bounds);  // scaled height
+ *   ctx.fillRect(barBottom.x, barTop.y, barWidth, barBottom.y - barTop.y);
+ *
+ * Wait -- does that work? Try it with some numbers and see.
+ * (Hint: it doesn't quite -- why not? What needs to change?)
+ *
+ * This function is a strong CREATE task candidate: it takes
+ * data as a parameter and you can test it with fake data to
+ * see exactly how the output changes.
+ *
+ * @param {number[]} data   - list of values to graph (e.g. infectedPerRound)
+ * @param {number} dataMax  - the maximum possible value (e.g. population.length)
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{top: number, bottom: number, left: number, right: number}} bounds
+ */
+function drawGraph(data, dataMax, ctx, bounds) {
 
-  // AI-generated: draw axes
+  // Draw axes
   ctx.strokeStyle = 'white';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(leftOfGraph, topOfGraph);
-  ctx.lineTo(leftOfGraph, bottomOfGraph);
-  ctx.lineTo(rightOfGraph, bottomOfGraph);
+  ctx.moveTo(bounds.left, bounds.top);
+  ctx.lineTo(bounds.left, bounds.bottom);
+  ctx.lineTo(bounds.right, bounds.bottom);
   ctx.stroke();
 
-  // Bar width: default to 20 rounds, shrink if we have more
-  let maxRounds = Math.max(20, infectedPerRound.length);
-  let barWidth = graphWidth / maxRounds;
+  // YOUR CODE HERE: draw one bar per entry in data[]
+  // Hint: what percentage of dataMax is data[i]?
+  //   let pct = (data[i] / dataMax) * 100;
+  // Then use percentToPixels to find where that bar top should be.
 
-  // Draw one bar per round
-  for (let i = 0; i < infectedPerRound.length; i++) {
-    let barHeight = (infectedPerRound[i] / population.length) * graphHeight;
-    let barX = leftOfGraph + i * barWidth;
-    let barY = bottomOfGraph - barHeight;
-    ctx.fillStyle = 'orange';
-    ctx.fillRect(barX, barY, barWidth - 2, barHeight);
-  }
-  // end AI-generated
-})
-
-
-const topBar = gi.addTopBar();
-topBar.addSlider(
-  {
-    label: 'Infection Rate',
-    min: 0,
-    max: 1,
-    step: 0.01,
-    value: 0.5,
-    oninput: function (value) {
-      infectionRate = value;
-    }
-  }
-);
-
-function updatePopulation(population, infectionRate) {
-  let toInfect = [];
-  for (let person of population) {
-    // Each person picks another person to shake hands with...
-    let other = population[Math.floor(Math.random() * population.length)];
-    if (person.infected && !other.infected) {
-      // Infected person can infect the other person based on infectionRate
-      if (Math.random() < infectionRate) {
-        toInfect.push(person);
-      }
-    } else if (!person.infected && other.infected) {
-      // Other person can infect this person based on infectionRate
-      if (Math.random() < infectionRate) {
-        toInfect.push(person);
-      }
-    }
-  }
-  // wait to actually infect them until
-  // the end of the round, so the disease doesn't
-  // propagate within a single round.
-  for (let person of toInfect) {
-    person.infected = true;
-  }
-  return population;
 }
 
-topBar.addButton(
-  {
-    text: 'Next Round',
-    onclick: function () {
-      roundCount++;
-      population = updatePopulation(population, infectionRate);
-      // Count how many are infected and record it for the graph
-      let infectedCount = 0;
-      for (let person of population) {
-        if (person.infected) {
-          infectedCount++;
-        }
-      }
-      infectedPerRound.push(infectedCount);
-    }
+
+/* ============================================================
+ * DRAWING: HUD (optional)
+ *
+ * Draw text overlays -- round count, infection rate, etc.
+ * Delete this function and its call below if you don't want it.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} width
+ * @param {number} height
+ */
+function drawHUD(ctx, width, height) {
+
+  // YOUR CODE HERE (or delete this function)
+
+}
+
+
+/* ============================================================
+ * REGISTERED DRAWING CALLBACKS
+ *
+ * These set up the bounds objects and call your draw functions.
+ * You shouldn't need to change these -- just fill in the
+ * draw functions above.
+ * ============================================================ */
+
+gi.addDrawing(function ({ ctx, width, height, elapsed }) {
+  let simBounds = {
+    top: 10,
+    bottom: height / 2 - 10,
+    left: 10,
+    right: width - 10,
+  };
+  drawSimulation(ctx, simBounds, elapsed);
+});
+
+gi.addDrawing(function ({ ctx, width, height }) {
+  let graphBounds = {
+    top: height / 2 + 10,
+    bottom: height - 50,
+    left: 50,
+    right: width - 50,
+  };
+  drawGraph([], 1, ctx, graphBounds);  // <- replace [] and 1 with your real data
+});
+
+gi.addDrawing(function ({ ctx, width, height }) {
+  drawHUD(ctx, width, height);
+});
+
+
+/* ============================================================
+ * SIMULATION LOGIC
+ *
+ * Write a function (or functions) that update your population
+ * each round. This is the other strong candidate for your
+ * CREATE task function.
+ *
+ * Your CREATE task function must have:
+ *   [ ] A parameter that genuinely affects what it does
+ *   [ ] Sequencing  -- steps in a deliberate order
+ *   [ ] Selection   -- at least one if/else
+ *   [ ] Iteration   -- at least one loop
+ *   [ ] An explicit call with arguments somewhere in your code
+ * ============================================================ */
+
+// YOUR CODE HERE
+
+
+/* ============================================================
+ * CONTROLS
+ * ============================================================ */
+
+let topBar = gi.addTopBar();
+
+topBar.addButton({
+  text: 'Next Round',
+  onclick: function () {
+    // call your update function here
+    window.alert('Replace me: call your simulation update function');
   }
-);
+});
+
+topBar.addSlider({
+  label: 'Infection Rate',
+  min: 0,
+  max: 1,
+  step: 0.01,
+  value: infectionRate,
+  oninput: function (value) {
+    infectionRate = value;
+  }
+});
+
+topBar.addSlider({
+  label: 'Initial Population',
+  min: 16,
+  max: 2048,
+  oninput: function (value) {
+    // call your generatePopulation function here, using value as the population size
+    window.alert('Replace me: call your generatePopulation function with population size ' + value);
+  }
+});
 
 topBar.addButton({
   text: 'Reset',
   onclick: function () {
-    for (let p of population) {
-      p.infected = false;
-    };
-    let patientZero = population[Math.floor(Math.random() * population.length)];
-    patientZero.infected = true;
-    roundCount = 0;
-    infectedPerRound = [1];
+    // call your generatePopulation function here
+    window.alert('Replace me: call your generatePopulation function');
   }
-})
+});
+
+// TODO: add sliders or inputs for your own parameters here
 
 
-/* Run the game */
 gi.run();
-
-

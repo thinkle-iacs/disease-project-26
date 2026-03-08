@@ -29,42 +29,19 @@ function generatePopulation(p) {
   population = [];
   roundCount = 0;
   infectedPerRound = [1];
-  // We're going to put a graph on the bottom, so we're going to just assume
-  // we are not quite a square. So if we were a square, then we'd want, say,
-  // 20 x 20 for 400 (sqrt(p)) for our column size.
-  // But because we want to be wider... we can take that sqrt value and double
-  // it... which would mean
-  // 40 x 10 for 400 or if it was 100 it would be 20 x 5. This seems reasonable
-  // enough to me...
-  numCols = Math.ceil(Math.sqrt(p)) * 2;
-  let numRows = Math.ceil(p / numCols);
   for (let i = 0; i < p; i++) {
-    let col = i % numCols;
-    let row = Math.floor(i / numCols);
-
-    // Calculate the cell size for this grid
-    let cellWidth = 100 / numCols;
-    let cellHeight = 100 / numRows;
-
-    // Base position (centered in cell)
-    let baseX = (col + 1) * cellWidth;
-    let baseY = (row + 1) * cellHeight;
-
-    // Add random wiggle within half the cell size
-    // Math.random() - 0.5 gives us a value between -0.5 and 0.5
-    let wiggleX = (Math.random() - 0.3) * cellWidth;
-    let wiggleY = (Math.random() - 0.3) * cellHeight;
-
-    population.push({
-      x: baseX + wiggleX,  // base position + random wiggle
-      y: baseY + wiggleY,  // base position + random wiggle
-      infected: false
-    });
-
+    let person = {
+      x: Math.floor(Math.random() * 100),
+      y: Math.floor(Math.random() * 100),
+      vx: Math.floor(Math.random() * 20) - 10,
+      vy: Math.floor(Math.random() * 20) - 10,
+      infected: i === 0, // literal patient zero
+    }
+    population.push(person);
   }
-  let patientZero = population[Math.floor(Math.random() * population.length)];
-  patientZero.infected = true;
+
 }
+
 
 generatePopulation(400);
 
@@ -93,10 +70,48 @@ gi.addDrawing(function drawConnections({ ctx, width, height }) {
   }
 
 });
+
+let lastCheck = 0;
+let simulationDone = false;
 // Draw people
-gi.addDrawing(function drawPeople({ ctx, width, height }) {
-  // AI-generated: convert % position to canvas pixels
-  let radius = Math.max(3, (Math.min(width, height / 2) / numCols) * 0.6);
+gi.addDrawing(function drawPeople({ ctx, width, height, stepTime, elapsed }) {
+
+  if (!simulationDone && (elapsed - lastCheck) > 1000) {
+    updatePopulation(population, infectionRate);
+    roundCount++;
+    let infected = population.filter(p => p.infected).length;
+    infectedPerRound.push(infected);
+    if (infected === population.length) {
+      // All people are infected
+      simulationDone = true;
+    }
+    lastCheck = elapsed;
+
+  }
+  if (!simulationDone) {
+    // move the people...
+    for (let person of population) {
+      person.x += person.vx * stepTime * 0.001;
+      person.y += person.vy * stepTime * 0.001;
+      if (person.x > 100) {
+        person.x = 100;
+        person.vx *= -1
+      }
+      if (person.y > 100) {
+        person.y = 100;
+        person.vy *= -1
+      }
+      if (person.x < 0) {
+        person.x = 0;
+        person.vx *= -1
+      }
+      if (person.y < 0) {
+        person.y = 0;
+        person.vy *= -1
+      }
+    }
+  }
+  let radius = Math.max(3, (Math.min(width, height / 2) / numCols) * 0.3);
   // Draw population...
   for (let person of population) {
     if (person.infected) {
@@ -109,7 +124,7 @@ gi.addDrawing(function drawPeople({ ctx, width, height }) {
     ctx.arc(coordinates.x, coordinates.y, radius, 0, 2 * Math.PI);
     ctx.fill();
   }
-  // end AI-generated
+
 });
 
 
@@ -191,47 +206,51 @@ topBar.addSlider(
 );
 
 function updatePopulation(population, infectionRate) {
-  connections = [];
   let toInfect = [];
-  let unconnected = population.slice(); // make a copy...  
-  debugger;
-  while (unconnected.length > 1) {
-    let person = unconnected[Math.floor(Math.random() * unconnected.length)];
-    let other = unconnected[Math.floor(Math.random() * unconnected.length)];
-    while (other == person) {
-      other = unconnected[Math.floor(Math.random() * unconnected.length)];
-    }
-    let connection = { person, other, color: '#222', weight: 1 };
-    if (person.infected && !other.infected) {
-      // Infected person can infect the other person based on infectionRate
-      if (Math.random() < infectionRate) {
-        toInfect.push(other);
-        connection.color = 'red'
-        connection.weight = 3;
+  connections = [];
+  // Infection range scales DOWN as population grows
+  // Uses square root so it doesn't shrink too fast
+  // For 100 people: 100/10 = 10
+  // For 400 people: 100/20 = 5
+  // For 1600 people: 100/40 = 2.5
+  let range = 100 / Math.sqrt(population.length);
+  let regionMap = {}
+  for (let person of population) {
+    let xZone = Math.round(person.x / (range * 3));
+    let yZone = Math.round(person.y / (range * 3));
+    const key = `${xZone}-${yZone}`;
+    if (!regionMap[key]) { regionMap[key] = [] }
+    regionMap[key].push(person);
+  }
+  // Now go through each "region" and check for overlap...
+  for (let key in regionMap) {
+    let infected = [];
+    let uninfected = [];
+    // collect infected people
+    for (let person of regionMap[key]) {
+      if (person.infected) {
+        infected.push(person);
       } else {
-        connection.color = 'yellow';
-      }
-    } else if (!person.infected && other.infected) {
-      // Other person can infect this person based on infectionRate
-      if (Math.random() < infectionRate) {
-        toInfect.push(person);
-        connection.color = 'red';
-        connection.weight = 3;
-      } else {
-        connection.color = 'yellow';
+        uninfected.push(person);
       }
     }
-    if (person.infected && other.infected) {
-      connection.color = '#400';
-    }
-    // Remove both people from the unconnected list
-    unconnected = unconnected.filter(
-      function (p) {
-        return p !== other && p !== person;
+    // if there are any infected people, then check
+    // their distance from uninfected people
+    if (infected.length && uninfected.length) {
+      for (let infectedPerson of infected) {
+        for (let uninfectedPerson of uninfected) {
+          if (Math.hypot(infectedPerson.x - uninfectedPerson.x, infectedPerson.y - uninfectedPerson.y) < range) {
+            // they are close enough to potentially infect... 
+            if (Math.random() < infectionRate) {
+              toInfect.push(uninfectedPerson);
+              connections.push({ person: infectedPerson, other: uninfectedPerson, color: 'red', weight: 3 });
+            } else {
+              connections.push({ person: infectedPerson, other: uninfectedPerson, color: 'yellow', weight: 1 });
+            }
+          }
+        }
       }
-    );
-
-    connections.push(connection);
+    }
   }
   // wait to actually infect them until
   // the end of the round, so the disease doesn't
@@ -242,24 +261,6 @@ function updatePopulation(population, infectionRate) {
   return population;
 }
 
-topBar.addButton(
-  {
-    text: 'Next Round',
-    onclick: function () {
-      roundCount++;
-      numberInput.disable();
-      population = updatePopulation(population, infectionRate);
-      // Count how many are infected and record it for the graph
-      let infectedCount = 0;
-      for (let person of population) {
-        if (person.infected) {
-          infectedCount++;
-        }
-      }
-      infectedPerRound.push(infectedCount);
-    }
-  }
-);
 
 let numberInput = topBar.addNumberInput(
   {

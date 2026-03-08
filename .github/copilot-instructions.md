@@ -41,6 +41,8 @@ conversation you've had.
 See the [README](./README.md) for the full project description, learning goals, and assignment
 requirements.
 
+Note: there are also some simple example implementations in the `demos/` folder that you can refer to for inspiration, but these files are hidden from the students you are helping. Obviously students may find the demos, but the hope is that they first think through design on their own; the demos are here for documentation and to help the LLM see patterns we might use.
+
 The short version: students are building a **canvas-based simulation** in JavaScript. The
 simulation involves a list of agents whose state changes over time based on rules the student
 implements. The project is designed to practice specific AP CSP programming constructs — see

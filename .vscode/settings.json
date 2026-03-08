@@ -3,7 +3,7 @@
   "editor.tabSize": 2,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.exclude": {
-    "**.html": true,
+    "**.html": false,
     "**.json": true,
     "node_modules": true,
     "docs*": true,
@@ -12,6 +12,7 @@
     ".*": true,
     "*.css": true,
     "main.js": false,
-    "*config*": true
+    "*config*": true,
+    ".demos": true
   }
 }

@@ -3,11 +3,8 @@
 /* Authors: [Your Name(s) Here] */
 /* Description: [Short description of your game here] */
 /* Citations: [List any resources, libraries, tutorials, etc you used here] */
-/* Note: If you use significant AI help you should cite that here as well, */
-/* including summaries of prompts and/or interactions you had with the AI. */
-/* AI-generated sections in the code should also be marked like this:      */
-/*   // AI-generated: [brief description]                                  */
-/*   // end AI-generated                                                   */
+/* AI Use: describe what you asked, what it gave you, and what you changed. */
+/* Mark AI-generated sections: // AI-generated: ... // end AI-generated   */
 
 import "./style.css";
 import { GameInterface } from 'simple-canvas-library';
@@ -15,48 +12,30 @@ import { GameInterface } from 'simple-canvas-library';
 let gi = new GameInterface();
 
 
-/* ============================================================
- * STATE
- * Add your simulation variables here.
- * ============================================================ */
+/* --- STATE ------------------------------------------------------------ */
 
 let infectionRate = 0.5;
 // let population = [];
 // let roundCount = 0;
 // let infectedPerRound = [1];
-// ... add more as you need them
 
 
-/* ============================================================
- * COORDINATE HELPER
+/* --- COORDINATE HELPER ------------------------------------------------
  *
- * All positions in your simulation use "percent coordinates":
- * x and y are numbers from 0 to 100, where (0,0) is the
- * top-left and (100,100) is the bottom-right of any region.
+ * Positions in your simulation are "percent coordinates": x and y
+ * run from 0 to 100, where (0,0) is the top-left of any region.
+ * percentToPixels() converts those to actual canvas pixels for a
+ * given bounds object: { top, bottom, left, right }
  *
- * This means you can write all your logic in 0-100 terms and
- * let the canvas be whatever size it wants -- the drawing will
- * scale automatically.
+ * Examples (bounds = { top:0, bottom:400, left:0, right:800 }):
+ *   percentToPixels(  0,   0, bounds) --> { x:   0, y:   0 }
+ *   percentToPixels(100, 100, bounds) --> { x: 800, y: 400 }
+ *   percentToPixels( 50,  50, bounds) --> { x: 400, y: 200 }
  *
- * percentToPixels() converts a percent coordinate (x, y) into
- * actual pixel coordinates for a given rectangular region
- * (described by a bounds object).
- *
- * A bounds object looks like:
- *   { top: 10, bottom: 400, left: 10, right: 800 }
- *
- * Examples (with bounds = { top:0, bottom:400, left:0, right:800 }):
- *   percentToPixels(0,   0,   bounds) --> { x: 0,   y: 0   }  top-left
- *   percentToPixels(100, 100, bounds) --> { x: 800, y: 400 }  bottom-right
- *   percentToPixels(50,  50,  bounds) --> { x: 400, y: 200 }  center
- *
- * Usage:
- *   let { x, y } = percentToPixels(person.x, person.y, simBounds);
- *
- * @param {number} x        - horizontal position, 0-100
- * @param {number} y        - vertical position, 0-100
- * @param {{top: number, bottom: number, left: number, right: number}} bounds
- * @returns {{x: number, y: number}}
+ * @param {number} x
+ * @param {number} y
+ * @param {{top:number, bottom:number, left:number, right:number}} bounds
+ * @returns {{x:number, y:number}}
  */
 function percentToPixels(x, y, bounds) {
   return {
@@ -66,85 +45,84 @@ function percentToPixels(x, y, bounds) {
 }
 
 
-/* ============================================================
- * DRAWING: SIMULATION
+/* --- DRAWING: SIMULATION ----------------------------------------------
  *
- * Draw your agents (people) inside the simulation area.
- * The bounds object tells you exactly where that area is
- * on the canvas -- use it with percentToPixels().
- *
- * Example -- drawing a circle at a person's position:
- *
- *   let { x, y } = percentToPixels(person.x, person.y, bounds);
- *   ctx.fillStyle = person.infected ? 'red' : 'green';
- *   ctx.beginPath();
- *   ctx.arc(x, y, radius, 0, 2 * Math.PI);
- *   ctx.fill();
+ * Draw your agents inside the simulation area.
  *
  * @param {CanvasRenderingContext2D} ctx
- * @param {{top: number, bottom: number, left: number, right: number}} bounds
- * @param {number} elapsed - total ms since simulation started
+ * @param {{top:number, bottom:number, left:number, right:number}} bounds
+ * @param {number} elapsed - ms since simulation started
  */
 function drawSimulation(ctx, bounds, elapsed) {
+
+  // Draw a border around the simulation area...
+  let topLeft = percentToPixels(0, 0, bounds);
+  let bottomRight = percentToPixels(100, 100, bounds);
+  ctx.strokeStyle = 'orange';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(topLeft.x, topLeft.y,
+    bottomRight.x - topLeft.x,
+    bottomRight.y - topLeft.y);
+
+  // Example: utility function to draw a person as a circle
+  function drawPerson(px, py, color) {
+    let { x, y } = percentToPixels(px, py, bounds);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Now we draw some people...
+  // (in your real code you'll replace this with a loop)
+  // like...
+  // for (let person of population) {...}
+
+  drawPerson(50, 50, 'green');
+  drawPerson(35, 80, 'red');
 
   // YOUR CODE HERE
 
 }
 
 
-/* ============================================================
- * DRAWING: GRAPH
+/* --- DRAWING: GRAPH ---------------------------------------------------
  *
- * Draw a bar chart in the graph area showing how your data
- * has changed over time.
+ * Draw a bar chart in the graph area.
+ * data[] is a list of values (e.g. infectedPerRound).
+ * dataMax is the largest possible value (e.g. population.length).
  *
- * The y-axis is a little tricky: a bar that reaches "100%
- * infected" should go all the way to the TOP of the graph
- * area, but top < bottom in canvas coordinates (y=0 is the
- * top of the screen). So a taller bar means a SMALLER y value.
- * percentToPixels handles this correctly as long as you think
- * of y=0 as "no infections" and y=100 as "all infected":
+ * This is a good CREATE task candidate -- try calling it with
+ * fake data to see how changing the arguments changes the output.
  *
- *   let barBottom = percentToPixels(barX, 0,   bounds);  // baseline
- *   let barTop    = percentToPixels(barX, pct, bounds);  // scaled height
- *   ctx.fillRect(barBottom.x, barTop.y, barWidth, barBottom.y - barTop.y);
- *
- * Wait -- does that work? Try it with some numbers and see.
- * (Hint: it doesn't quite -- why not? What needs to change?)
- *
- * This function is a strong CREATE task candidate: it takes
- * data as a parameter and you can test it with fake data to
- * see exactly how the output changes.
- *
- * @param {number[]} data   - list of values to graph (e.g. infectedPerRound)
- * @param {number} dataMax  - the maximum possible value (e.g. population.length)
+ * @param {number[]} data
+ * @param {number} dataMax
  * @param {CanvasRenderingContext2D} ctx
- * @param {{top: number, bottom: number, left: number, right: number}} bounds
+ * @param {{top:number, bottom:number, left:number, right:number}} bounds
  */
 function drawGraph(data, dataMax, ctx, bounds) {
 
-  // Draw axes
+  // Axes
+  let topLeft = percentToPixels(0, 0, bounds);
+  let bottomLeft = percentToPixels(0, 100, bounds);
+  let bottomRight = percentToPixels(100, 100, bounds);
   ctx.strokeStyle = 'white';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(bounds.left, bounds.top);
-  ctx.lineTo(bounds.left, bounds.bottom);
-  ctx.lineTo(bounds.right, bounds.bottom);
+  ctx.moveTo(topLeft.x, topLeft.y);
+  ctx.lineTo(bottomLeft.x, bottomLeft.y);
+  ctx.lineTo(bottomRight.x, bottomRight.y);
   ctx.stroke();
 
-  // YOUR CODE HERE: draw one bar per entry in data[]
-  // Hint: what percentage of dataMax is data[i]?
-  //   let pct = (data[i] / dataMax) * 100;
-  // Then use percentToPixels to find where that bar top should be.
+  // YOUR CODE HERE
+  // Hint: let pct = (data[i] / dataMax) * 100;
 
 }
 
 
-/* ============================================================
- * DRAWING: HUD (optional)
+/* --- DRAWING: HUD -----------------------------------------------------
  *
- * Draw text overlays -- round count, infection rate, etc.
- * Delete this function and its call below if you don't want it.
+ * Optional text overlay. Delete if you don't need it.
  *
  * @param {CanvasRenderingContext2D} ctx
  * @param {number} width
@@ -152,22 +130,26 @@ function drawGraph(data, dataMax, ctx, bounds) {
  */
 function drawHUD(ctx, width, height) {
 
-  // YOUR CODE HERE (or delete this function)
+  // YOUR CODE HERE
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'white';
+  ctx.strokeStyle = 'red';
+  let text = `Simulation - Infection Rate: ${infectionRate.toFixed(2)}`;
+  ctx.font = '16pt sans-serif';
+  ctx.strokeText(text, 15, 25);
+  ctx.fillText(text, 15, 25);
 
 }
 
 
-/* ============================================================
- * REGISTERED DRAWING CALLBACKS
- *
- * These set up the bounds objects and call your draw functions.
- * You shouldn't need to change these -- just fill in the
- * draw functions above.
- * ============================================================ */
+/* --- REGISTERED DRAWING CALLBACKS -------------------------------------
+ * You shouldn't need to change these.
+ * Adjust the bounds values if you want to resize the regions.
+ */
 
 gi.addDrawing(function ({ ctx, width, height, elapsed }) {
   let simBounds = {
-    top: 10,
+    top: 30,
     bottom: height / 2 - 10,
     left: 10,
     right: width - 10,
@@ -190,63 +172,46 @@ gi.addDrawing(function ({ ctx, width, height }) {
 });
 
 
-/* ============================================================
- * SIMULATION LOGIC
+/* --- SIMULATION LOGIC -------------------------------------------------
  *
- * Write a function (or functions) that update your population
- * each round. This is the other strong candidate for your
- * CREATE task function.
- *
- * Your CREATE task function must have:
- *   [ ] A parameter that genuinely affects what it does
- *   [ ] Sequencing  -- steps in a deliberate order
- *   [ ] Selection   -- at least one if/else
- *   [ ] Iteration   -- at least one loop
- *   [ ] An explicit call with arguments somewhere in your code
- * ============================================================ */
+ * Write functions to update your population each round.
+ * Your CREATE task function must have a parameter that affects
+ * its behavior, sequencing, selection (if/else), iteration (loop),
+ * and an explicit call with arguments somewhere in your code.
+ */
 
 // YOUR CODE HERE
 
 
-/* ============================================================
- * CONTROLS
- * ============================================================ */
+/* --- CONTROLS --------------------------------------------------------- */
 
 let topBar = gi.addTopBar();
 
 topBar.addButton({
   text: 'Next Round',
   onclick: function () {
-    // call your update function here
     window.alert('Replace me: call your simulation update function');
   }
 });
 
 topBar.addSlider({
   label: 'Infection Rate',
-  min: 0,
-  max: 1,
-  step: 0.01,
+  min: 0, max: 1, step: 0.01,
   value: infectionRate,
-  oninput: function (value) {
-    infectionRate = value;
-  }
+  oninput: function (value) { infectionRate = value; }
 });
 
 topBar.addSlider({
   label: 'Initial Population',
-  min: 16,
-  max: 2048,
+  min: 16, max: 2048,
   oninput: function (value) {
-    // call your generatePopulation function here, using value as the population size
-    window.alert('Replace me: call your generatePopulation function with population size ' + value);
+    window.alert('Replace me: call your generatePopulation function with size ' + value);
   }
 });
 
 topBar.addButton({
   text: 'Reset',
   onclick: function () {
-    // call your generatePopulation function here
     window.alert('Replace me: call your generatePopulation function');
   }
 });

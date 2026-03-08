@@ -1,23 +1,20 @@
-/* Main game file: main.js */
-/* Game: [Your Game Name Here] */
-/* Authors: [Your Name(s) Here] */
-/* Description: [Short description of your game here] */
-/* Citations: [List any resources, libraries, tutorials, etc you used here] 
-/* Note: If you use significant AI help you should cite that here as well */
-/* including summaries of prompts and/or interactions you had with the AI */
-/* In addition, of course, any AI-generated code should be clearly maked */
-/* in comments throughout the code, though of course when using e.g. CoPilot */
-/* auto-complete it maye be impractical to mark every line, which is why you */
-/* should also include a summary here */
-
+/* Demo 1: Grid-Based Random Pairing */
+/* Game: Random Pairing Disease Simulation */
+/* Authors: Demo Example */
+/* Description: People are arranged in a grid. Each round, people are randomly */
+/* paired up, and infections spread based on the infection rate. */
+/* Citations: simple-canvas-library */
 
 import "./style.css";
-
 import { GameInterface } from 'simple-canvas-library';
 
 let gi = new GameInterface();
 
-/* Variables: Top-Level variables defined here are used to hold game state */
+
+/* ============================================================
+ * STATE
+ * ============================================================ */
+
 let connections = [];
 let population = [];
 let infectionRate = 0.5;
@@ -25,19 +22,37 @@ let roundCount = 0;
 let infectedPerRound = [1];
 let numCols = 10;
 
+
+/* ============================================================
+ * COORDINATE HELPER
+ *
+ * See main.js for full documentation of percentToPixels.
+ * ============================================================ */
+function percentToPixels(x, y, bounds) {
+  return {
+    x: bounds.left + (x / 100) * (bounds.right - bounds.left),
+    y: bounds.top + (y / 100) * (bounds.bottom - bounds.top),
+  };
+}
+
+
+/* ============================================================
+ * INITIALIZATION
+ * ============================================================ */
+
+/**
+ * Generate a population arranged in a grid with random wiggle.
+ * @param {number} p - population size
+ */
 function generatePopulation(p) {
   population = [];
   roundCount = 0;
   infectedPerRound = [1];
-  // We're going to put a graph on the bottom, so we're going to just assume
-  // we are not quite a square. So if we were a square, then we'd want, say,
-  // 20 x 20 for 400 (sqrt(p)) for our column size.
-  // But because we want to be wider... we can take that sqrt value and double
-  // it... which would mean
-  // 40 x 10 for 400 or if it was 100 it would be 20 x 5. This seems reasonable
-  // enough to me...
+
+  // Calculate grid dimensions
   numCols = Math.ceil(Math.sqrt(p)) * 2;
   let numRows = Math.ceil(p / numCols);
+
   for (let i = 0; i < p; i++) {
     let col = i % numCols;
     let row = Math.floor(i / numCols);
@@ -51,17 +66,17 @@ function generatePopulation(p) {
     let baseY = (row + 1) * cellHeight;
 
     // Add random wiggle within half the cell size
-    // Math.random() - 0.5 gives us a value between -0.5 and 0.5
     let wiggleX = (Math.random() - 0.3) * cellWidth;
     let wiggleY = (Math.random() - 0.3) * cellHeight;
 
     population.push({
-      x: baseX + wiggleX,  // base position + random wiggle
-      y: baseY + wiggleY,  // base position + random wiggle
+      x: baseX + wiggleX,
+      y: baseY + wiggleY,
       infected: false
     });
-
   }
+
+  // Infect patient zero
   let patientZero = population[Math.floor(Math.random() * population.length)];
   patientZero.infected = true;
 }
@@ -69,21 +84,15 @@ function generatePopulation(p) {
 generatePopulation(400);
 
 
-
-
-
-function getCoordinates(person, width, height) {
-  let x = ((5 + person.x) / 100) * (width * 0.9);   // e.g. x=10 -> 10% of width (adjusted to 90% to leave padding)
-  let y = 10 + (person.y / 100) * (height / 2 * 0.9);  // e.g. y=10 -> 10% of height (adjusted to 90% to leave padding)
-  return { x, y }
-}
-
-
-// Draw connections
-gi.addDrawing(function drawConnections({ ctx, width, height }) {
+/* ============================================================
+ * DRAWING: CONNECTIONS
+ *
+ * Draw lines showing who is paired with whom each round.
+ * ============================================================ */
+function drawConnections(ctx, bounds) {
   for (let { person, other, color, weight } of connections) {
-    let personCoords = getCoordinates(person, width, height);
-    let otherCoords = getCoordinates(other, width, height);
+    let personCoords = percentToPixels(person.x, person.y, bounds);
+    let otherCoords = percentToPixels(other.x, other.y, bounds);
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.lineWidth = weight;
@@ -91,128 +100,164 @@ gi.addDrawing(function drawConnections({ ctx, width, height }) {
     ctx.lineTo(otherCoords.x, otherCoords.y);
     ctx.stroke();
   }
+}
 
-});
-// Draw people
-gi.addDrawing(function drawPeople({ ctx, width, height }) {
-  // AI-generated: convert % position to canvas pixels
-  let radius = Math.max(3, (Math.min(width, height / 2) / numCols) * 0.6);
-  // Draw population...
+
+/* ============================================================
+ * DRAWING: SIMULATION
+ *
+ * Draw the population as colored circles.
+ * ============================================================ */
+function drawSimulation(ctx, bounds) {
+  let boundsWidth = bounds.right - bounds.left;
+  let boundsHeight = bounds.bottom - bounds.top;
+  let radius = Math.max(3, (Math.min(boundsWidth, boundsHeight) / numCols) * 0.6);
+
   for (let person of population) {
     if (person.infected) {
       ctx.fillStyle = 'red';
     } else {
       ctx.fillStyle = 'green';
     }
-    let coordinates = getCoordinates(person, width, height);
+    let coordinates = percentToPixels(person.x, person.y, bounds);
     ctx.beginPath();
     ctx.arc(coordinates.x, coordinates.y, radius, 0, 2 * Math.PI);
     ctx.fill();
   }
-  // end AI-generated
-});
+}
 
 
-// Draw graph
-gi.addDrawing(function drawGraph({ ctx, width, height }) {
-  let topOfGraph = height / 2;
-  let bottomOfGraph = height * 0.9;
-  let leftOfGraph = width * 0.1;
-  let rightOfGraph = width * 0.9;
-  let graphWidth = rightOfGraph - leftOfGraph;
-  let graphHeight = bottomOfGraph - topOfGraph;
+/* ============================================================
+ * DRAWING: GRAPH
+ *
+ * Draw a bar chart showing infections over time.
+ * ============================================================ */
+function drawGraph(data, dataMax, ctx, bounds) {
+  let graphWidth = bounds.right - bounds.left;
+  let graphHeight = bounds.bottom - bounds.top;
 
-  // AI-generated: draw axes
+  // Draw axes
   ctx.strokeStyle = 'white';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(leftOfGraph, topOfGraph);
-  ctx.lineTo(leftOfGraph, bottomOfGraph);
-  ctx.lineTo(rightOfGraph, bottomOfGraph);
+  ctx.moveTo(bounds.left, bounds.top);
+  ctx.lineTo(bounds.left, bounds.bottom);
+  ctx.lineTo(bounds.right, bounds.bottom);
   ctx.stroke();
 
   // Bar width: default to 20 rounds, shrink if we have more
-  let maxRounds = Math.max(20, infectedPerRound.length);
+  let maxRounds = Math.max(20, data.length);
   let barWidth = graphWidth / maxRounds;
 
-  // Draw one bar per round
-  for (let i = 0; i < infectedPerRound.length; i++) {
-    let barHeight = (infectedPerRound[i] / population.length) * graphHeight;
-    let barX = leftOfGraph + i * barWidth;
-    let barY = bottomOfGraph - barHeight;
+  // Draw total infected bars (orange)
+  for (let i = 0; i < data.length; i++) {
+    let barHeight = (data[i] / dataMax) * graphHeight;
+    let barX = bounds.left + i * barWidth;
+    let barY = bounds.bottom - barHeight;
     ctx.fillStyle = 'orange';
     ctx.fillRect(barX, barY, barWidth - 2, barHeight);
     ctx.fillStyle = 'white';
     ctx.textAlign = 'center';
-    ctx.beginPath();
     ctx.fillText(
-      `${infectedPerRound[i]}`,
-      barX + barWidth / 2, barY - 10, // position text above the bar
+      `${data[i]}`,
+      barX + barWidth / 2,
+      barY - 10
     );
   }
-  // Now let's add red bars for the new infections each round.
-  for (let i = 0; i < infectedPerRound.length; i++) {
-    let newInfections = infectedPerRound[i] - (infectedPerRound[i - 1] || 0);
-    let barHeight = (newInfections / population.length) * graphHeight;
-    let barX = leftOfGraph + i * barWidth;
-    let barY = bottomOfGraph - barHeight;
+
+  // Draw new infections (red bars on top)
+  for (let i = 0; i < data.length; i++) {
+    let newInfections = data[i] - (data[i - 1] || 0);
+    let barHeight = (newInfections / dataMax) * graphHeight;
+    let barX = bounds.left + i * barWidth;
+    let barY = bounds.bottom - barHeight;
     ctx.fillStyle = 'red';
     ctx.fillRect(barX, barY, barWidth - 2, barHeight);
   }
-  // end AI-generated
-})
+}
 
 
-gi.addDrawing(function drawText({ ctx }) {
-  // Draw text...
+/* ============================================================
+ * DRAWING: HUD
+ *
+ * Draw text overlays showing game state.
+ * ============================================================ */
+function drawHUD(ctx) {
   ctx.fillStyle = 'yellow';
   ctx.textAlign = "left";
   ctx.fillText(
-    `
-Round: ${roundCount}
+    `Round: ${roundCount}
 Population: ${population.length}
-Infection Rate: ${infectionRate}
-    `, 20, 20
-  )
+Infection Rate: ${infectionRate}`,
+    20, 20
+  );
+}
+
+
+/* ============================================================
+ * REGISTERED DRAWING CALLBACKS
+ * ============================================================ */
+
+gi.addDrawing(function ({ ctx, width, height }) {
+  let simBounds = {
+    top: 10,
+    bottom: height / 2 - 10,
+    left: 10,
+    right: width - 10,
+  };
+  drawConnections(ctx, simBounds);
+  drawSimulation(ctx, simBounds);
 });
 
-// UI for adjusting things
-const topBar = gi.addTopBar();
-topBar.addSlider(
-  {
-    label: 'Infection Rate',
-    min: 0,
-    max: 1,
-    step: 0.01,
-    value: 0.5,
-    oninput: function (value) {
-      infectionRate = value;
-    }
-  }
-);
+gi.addDrawing(function ({ ctx, width, height }) {
+  let graphBounds = {
+    top: height / 2 + 10,
+    bottom: height * 0.9,
+    left: width * 0.1,
+    right: width * 0.9,
+  };
+  drawGraph(infectedPerRound, population.length, ctx, graphBounds);
+});
 
+gi.addDrawing(function ({ ctx }) {
+  drawHUD(ctx);
+});
+
+
+/* ============================================================
+ * SIMULATION LOGIC
+ *
+ * updatePopulation: Randomly pair up people and spread infection.
+ * This is a CREATE task function with parameters, sequencing,
+ * selection, and iteration.
+ * ============================================================ */
 function updatePopulation(population, infectionRate) {
   connections = [];
   let toInfect = [];
-  let unconnected = population.slice(); // make a copy...  
-  debugger;
+  let unconnected = population.slice();
+
+  // Pair up people randomly
   while (unconnected.length > 1) {
     let person = unconnected[Math.floor(Math.random() * unconnected.length)];
     let other = unconnected[Math.floor(Math.random() * unconnected.length)];
+
+    // Make sure we don't pair someone with themselves
     while (other == person) {
       other = unconnected[Math.floor(Math.random() * unconnected.length)];
     }
+
     let connection = { person, other, color: '#222', weight: 1 };
+
+    // Check if infection spreads
     if (person.infected && !other.infected) {
-      // Infected person can infect the other person based on infectionRate
       if (Math.random() < infectionRate) {
         toInfect.push(other);
-        connection.color = 'red'
+        connection.color = 'red';
         connection.weight = 3;
       } else {
         connection.color = 'yellow';
       }
     } else if (!person.infected && other.infected) {
-      // Other person can infect this person based on infectionRate
       if (Math.random() < infectionRate) {
         toInfect.push(person);
         connection.color = 'red';
@@ -221,9 +266,11 @@ function updatePopulation(population, infectionRate) {
         connection.color = 'yellow';
       }
     }
+
     if (person.infected && other.infected) {
       connection.color = '#400';
     }
+
     // Remove both people from the unconnected list
     unconnected = unconnected.filter(
       function (p) {
@@ -233,53 +280,67 @@ function updatePopulation(population, infectionRate) {
 
     connections.push(connection);
   }
-  // wait to actually infect them until
-  // the end of the round, so the disease doesn't
-  // propagate within a single round.
+
+  // Infect people at the end of the round
   for (let person of toInfect) {
     person.infected = true;
   }
+
   return population;
 }
 
-topBar.addButton(
-  {
-    text: 'Next Round',
-    onclick: function () {
-      roundCount++;
-      numberInput.disable();
-      population = updatePopulation(population, infectionRate);
-      // Count how many are infected and record it for the graph
-      let infectedCount = 0;
-      for (let person of population) {
-        if (person.infected) {
-          infectedCount++;
-        }
+
+/* ============================================================
+ * CONTROLS
+ * ============================================================ */
+
+let topBar = gi.addTopBar();
+
+topBar.addSlider({
+  label: 'Infection Rate',
+  min: 0,
+  max: 1,
+  step: 0.01,
+  value: 0.5,
+  oninput: function (value) {
+    infectionRate = value;
+  }
+});
+
+topBar.addButton({
+  text: 'Next Round',
+  onclick: function () {
+    roundCount++;
+    numberInput.disable();
+    population = updatePopulation(population, infectionRate);
+
+    // Count infected for graph
+    let infectedCount = 0;
+    for (let person of population) {
+      if (person.infected) {
+        infectedCount++;
       }
-      infectedPerRound.push(infectedCount);
     }
+    infectedPerRound.push(infectedCount);
   }
-);
+});
 
-let numberInput = topBar.addNumberInput(
-  {
-    label: 'Population Size',
-    min: 12,
-    max: 10000,
-    value: population.length,
-    oninput: function (value) {
-      generatePopulation(value);
-    }
+let numberInput = topBar.addNumberInput({
+  label: 'Population Size',
+  min: 12,
+  max: 10000,
+  value: population.length,
+  oninput: function (value) {
+    generatePopulation(value);
   }
-);
-
+});
 
 topBar.addButton({
   text: 'Reset',
   onclick: function () {
     for (let p of population) {
       p.infected = false;
-    };
+    }
     let patientZero = population[Math.floor(Math.random() * population.length)];
     patientZero.infected = true;
     roundCount = 0;
@@ -287,10 +348,9 @@ topBar.addButton({
     numberInput.enable();
     infectedPerRound = [1];
   }
-})
+});
 
 
-/* Run the game */
 gi.run();
 
 
